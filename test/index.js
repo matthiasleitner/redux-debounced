@@ -186,4 +186,101 @@ describe('debounce middleware', () => {
       assert.deepEqual(store.getState(), {});
     });
   });
+
+  describe('leading debounced action are called once at the beginning', () => {
+    const action = {
+      type: 'UPDATE',
+      meta: {
+        debounce: {
+          time: 300,
+          leading: true,
+          trailing: false
+        }
+      }
+    };
+
+    beforeEach(() => {
+      spy(global, 'clearTimeout');
+      global.clearTimeout.reset();
+      global.setTimeout.reset();
+      store.dispatch(action);
+      store.dispatch(action);
+      store.dispatch(action);
+    });
+
+    it('setTimeout is called three times', () => {
+      assert.ok(global.setTimeout.calledThrice);
+    });
+
+    it('state will update once on the first action', () => {
+      assert.deepEqual(store.getState(), {increment: 1});
+      clock.tick(400);
+      assert.deepEqual(store.getState(), {increment: 1});
+    });
+  });
+
+  describe('leading debounced action are called again if time is elapsed', () => {
+    const action = {
+      type: 'UPDATE',
+      meta: {
+        debounce: {
+          time: 300,
+          leading: true,
+          trailing: false
+        }
+      }
+    };
+
+    beforeEach(() => {
+      spy(global, 'clearTimeout');
+      global.clearTimeout.reset();
+      global.setTimeout.reset();
+      store.dispatch(action);
+      store.dispatch(action);
+      clock.tick(500);
+      store.dispatch(action);
+    });
+
+    it('setTimeout is called thrice', () => {
+      assert.ok(global.setTimeout.calledThrice);
+    });
+
+    it('state will update once on the first action', () => {
+      assert.deepEqual(store.getState(), {increment: 2});
+    });
+  });
+
+  describe('leading and trailing debounced action can work together', () => {
+    const action = {
+      type: 'UPDATE',
+      meta: {
+        debounce: {
+          time: 300,
+          leading: true,
+          trailing: true
+        }
+      }
+    };
+
+    beforeEach(() => {
+      spy(global, 'clearTimeout');
+      global.clearTimeout.reset();
+      global.setTimeout.reset();
+      store.dispatch(action);
+      clock.tick(100);
+      store.dispatch(action);
+      clock.tick(100);
+      store.dispatch(action);
+    });
+
+    it('setTimeout is called thrice', () => {
+      assert.ok(global.setTimeout.calledThrice);
+    });
+
+    it('state will update once on leading and trailing edge', () => {
+      assert.deepEqual(store.getState(), {increment: 1});
+      clock.tick(400)
+      assert.deepEqual(store.getState(), {increment: 2});
+    });
+  });
 });
